@@ -90,7 +90,7 @@ def main():
             print(f"{k:16s} {len(v):3d} runs")
         return
     runs = suites[a.suite]
-    threads = a.threads or max(1, (os.cpu_count() or 2) // a.jobs)
+    threads = a.threads or max(1, (os.cpu_count() or 2) // 2 // a.jobs)
     os.makedirs(os.path.join(a.out_dir, "logs"), exist_ok=True)
 
     cmds = []

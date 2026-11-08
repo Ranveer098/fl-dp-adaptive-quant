@@ -90,6 +90,9 @@ def test_laplace_noise_scale():
     add_laplace_noise_([p], 0.5)
     assert abs(p.mean()) < 0.01
     assert abs(p.abs().mean() - 0.5) < 0.01  # E|Lap(0,b)| = b
+    big = torch.zeros(20_000_000)  # more draws than one MNIST round; must never produce inf/nan
+    add_laplace_noise_([big], 1e-6)
+    assert torch.isfinite(big).all()
 
 
 def test_partitions():

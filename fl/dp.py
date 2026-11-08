@@ -77,5 +77,7 @@ def add_laplace_noise_(tensors, scale: float):
     if scale <= 0:
         return
     for p in tensors:
-        u = torch.rand_like(p).clamp_(1e-12, 1 - 1e-12) - 0.5
-        p.add_(-scale * torch.sign(u) * torch.log1p(-2 * u.abs()))
+                # Lap(0, b) = b * (Exp(1) - Exp(1)). Always finite (inverse-CDF sampling with
+        # torch.rand can hit u = 0 exactly and return an infinite value).
+        noise = torch.empty_like(p).exponential_() - torch.empty_like(p).exponential_()
+        p.add_(noise.mul_(scale))
