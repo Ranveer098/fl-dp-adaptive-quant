@@ -90,6 +90,7 @@ def main():
             print(f"{k:16s} {len(v):3d} runs")
         return
     runs = suites[a.suite]
+    # os.cpu_count() counts hyper-threads; using physical cores (about half) avoids oversubscription
     threads = a.threads or max(1, (os.cpu_count() or 2) // 2 // a.jobs)
     os.makedirs(os.path.join(a.out_dir, "logs"), exist_ok=True)
 
@@ -122,22 +123,33 @@ def main():
                         f"from fl.data import load_dataset; load_dataset('{ds}', './data', '{src}', '{leaf}')"],
                        cwd=ROOT, check=True)
 
-    print(f"{len(cmds)} runs to do, {a.jobs} in parallel, {threads} threads each")
+    try:  # spread parallel runs over all visible GPUs (Kaggle "GPU T4 x2" has two)
+        import torch
+        n_gpus = torch.cuda.device_count()
+    except Exception:
+        n_gpus = 0
+
+    print(f"{len(cmds)} runs to do, {a.jobs} in parallel, {threads} threads each, {n_gpus} GPU(s)")
     running = []
     t0 = time.time()
     while cmds or running:
         while cmds and len(running) < a.jobs:
             name, cmd = cmds.pop(0)
+            gpu = ""
+            if n_gpus > 0:  # the GPU with the fewest running jobs
+                load = [sum(1 for r in running if r[3] == f"cuda:{g}") for g in range(n_gpus)]
+                gpu = f"cuda:{load.index(min(load))}"
+                cmd = cmd + ["--device", gpu]
             log = open(os.path.join(a.out_dir, "logs", f"{name}.log"), "a")
-            print(f"start  {name}")
-            running.append((name, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT), log))
+            print(f"start  {name}  {gpu}", flush=True)
+            running.append((name, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT), log, gpu))
         for item in list(running):
-            name, p, log = item
+            name, p, log, _ = item
             if p.poll() is not None:
                 log.close()
                 running.remove(item)
                 status = "ok" if p.returncode == 0 else f"FAILED ({p.returncode}) - see results/logs/{name}.log"
-                print(f"finish {name}: {status}  [{(time.time() - t0) / 60:.1f} min elapsed]")
+                print(f"finish {name}: {status}  [{(time.time() - t0) / 60:.1f} min elapsed]", flush=True)
         time.sleep(2)
 
 
