@@ -1,8 +1,0 @@
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] device=cpu N=100 P=10 T=5 E=1 | train 60000 / test 10000 | client sizes min=337 median=572 max=1096 | mean norm. entropy=0.838 | full-batch clients=True augment=False
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] round    0/5 acc= 10.98% loss=2.299 GiB=   0.114 bits(down=32,up~26.7) lambda~0 noise~1.95e-06 | 12.94s/round ETA 0.9 min
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] round    1/5 acc=  9.80% loss=nan GiB=   0.220 bits(down=30,up~24.9) lambda~0 noise~1.76e-06 | 12.59s/round ETA 0.6 min
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] round    2/5 acc=  9.80% loss=nan GiB=   0.305 bits(down=24,up~19.8) lambda~0 noise~1.84e-06 | 12.32s/round ETA 0.4 min
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] round    3/5 acc=  9.80% loss=nan GiB=   0.363 bits(down=16,up~14.3) lambda~0 noise~1.57e-06 | 12.30s/round ETA 0.2 min
-[fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1] round    4/5 acc=  9.80% loss=nan GiB=   0.402 bits(down=10,up~10.0) lambda~0 noise~1.84e-06 | 12.13s/round ETA 0.0 min
-
-DONE fast_smoke_datmnist_n_c100_quadynamic_eps10000p0_xi100_rou5_loc1: best acc 10.98% at round 0, total 0.40 GiB, 1.0 min
