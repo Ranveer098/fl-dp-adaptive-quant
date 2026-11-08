@@ -44,6 +44,8 @@ class Config:
     leaf_dir: str = ""               # folder with train/ and test/ JSON (default: <data_root>/MNIST)
     batch_mode: str = "auto"         # auto: official behaviour (merged MNIST clients = one full batch) | fixed
     augment: str = "auto"            # auto: official CIFAR10 augmentation, none for MNIST | official | none
+    input_norm: str = "unit"         # unit: pixels in [0, 1] | standardize: per-pixel z-score, i.e. the
+                                     # LEAF MNIST JSON as stored if renormalize.py was never run
     seed: int = 0
     eval_every: int = 10
     device: str = "auto"
@@ -86,7 +88,7 @@ def evaluate(model, state, x, y, prep=to_unit, bs=2000):
     return correct / len(y), loss / len(y)
 
 
-def local_train(model, opt, x_all, y_all, idx, cfg, full_batch=False, augment=False):
+def local_train(model, opt, x_all, y_all, idx, cfg, full_batch=False, augment=False, post=None):
     """Algorithm 1 lines 18-24: E epochs of clipped SGD; returns the Lipschitz estimate lambda_i."""
     model.train()
     params = [p for p in model.parameters()]
@@ -100,6 +102,8 @@ def local_train(model, opt, x_all, y_all, idx, cfg, full_batch=False, augment=Fa
             xb = to_unit(x_all[b])
             if augment:
                 xb = official_cifar_augment(xb)
+            if post is not None:
+                xb = post(xb)
             loss = F.cross_entropy(model(xb), y_all[b])
             loss.backward()
             clip_grad_l1_(params, cfg.xi)
@@ -131,6 +135,15 @@ def run(cfg: Config) -> dict:
     augment = cfg.augment == "official" or (cfg.augment == "auto" and cfg.dataset == "cifar10")
     sizes = np.array([len(p) for p in parts])
     H = normalized_entropy(labels, parts, K)
+    post = None  # optional transform applied after [0, 1] scaling (and augmentation)
+    if cfg.input_norm == "standardize":
+        allx = torch.cat([xtr, xte]).float()
+        mu = allx.mean(0, keepdim=True).to(device)
+        sd = allx.std(0, unbiased=False, keepdim=True).to(device) + 1e-3  # FedProx: (x - mu) / (sigma + 0.001)
+        del allx
+
+        def post(x01):
+            return (x01 * 255.0 - mu) / sd
     xtr, ytr, xte, yte = xtr.to(device), ytr.to(device), xte.to(device), yte.to(device)
     parts_t = [torch.as_tensor(p, device=device) for p in parts]
 
@@ -160,7 +173,8 @@ def run(cfg: Config) -> dict:
 
     print(f"[{name}] device={device} N={N} P={P} T={T} E={E} | train {len(labels)} / test {len(yte)} | "
           f"client sizes min={sizes.min()} median={int(np.median(sizes))} max={sizes.max()} | "
-          f"mean norm. entropy={H.mean():.3f} | full-batch clients={full_batch} augment={augment}", flush=True)
+          f"mean norm. entropy={H.mean():.3f} | full-batch clients={full_batch} augment={augment} "
+          f"input_norm={cfg.input_norm}", flush=True)
 
     t0 = time.time()
     for t in range(start_round, T):
@@ -175,7 +189,7 @@ def run(cfg: Config) -> dict:
         up = 0
         for i in sel:
             model.load_state_dict(broadcast)
-            lam = local_train(model, opt, xtr, ytr, parts_t[i], cfg, full_batch, augment)  # lines 19-24
+            lam = local_train(model, opt, xtr, ytr, parts_t[i], cfg, full_batch, augment, post)  # lines 19-24
             if cfg.lipschitz == "zero":
                 lam = 0.0
             scale = 0.0
@@ -206,7 +220,8 @@ def run(cfg: Config) -> dict:
         over_time = cfg.max_minutes > 0 and (time.time() - t0) / 60 > cfg.max_minutes
         # official: test at round_idx % freq == 0 and at the last round; rounds are 0-based
         if t % cfg.eval_every == 0 or last or over_time:
-            acc, loss = evaluate(model, global_state, xte, yte)
+            acc, loss = evaluate(model, global_state, xte, yte,
+                                 prep=to_unit if post is None else (lambda x: post(to_unit(x))))
             el = elapsed_before + time.time() - t0
             for key, val in [("round", t), ("test_acc", acc), ("test_loss", loss),
                              ("gib", total_bits / GIB), ("avg_up_bits", float(np.mean(round_log["up_bits"]))),
