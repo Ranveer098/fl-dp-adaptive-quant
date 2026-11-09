@@ -1,0 +1,10 @@
+group,dataset,clients,quant,epsilon,xi,lambda_h,partition,alpha,rounds,E,best_acc_%,best_round,final_acc_%,total_GiB,comm_reduction_vs_fp32_%,minutes,finished
+paper_clip_cifar10,cifar10,100,fp32,inf,10.0,0.75,auto,0.5,1000,5,61.72,960,60.37,24.267,0.0,115.4,True
+paper_clip_cifar10,cifar10,100,fp32,inf,20.0,0.75,auto,0.5,1000,5,68.91,960,67.77,24.267,0.0,115.2,True
+paper_clip_cifar10,cifar10,100,fp32,inf,50.0,0.75,auto,0.5,1000,5,75.44,960,73.85,24.267,0.0,115.5,True
+paper_clip_cifar10,cifar10,100,fp32,inf,100.0,0.75,auto,0.5,1000,5,78.55,950,76.41,24.267,0.0,115.3,True
+paper_clip_cifar10,cifar10,100,fp32,inf,inf,0.75,auto,0.5,1000,5,84.52,960,83.55,24.267,0.0,53.8,True
+paper_lambda_cifar10,cifar10,100,dynamic,10000.0,100.0,0.25,auto,0.5,1000,5,77.32,960,75.52,13.524,,123.3,True
+paper_lambda_cifar10,cifar10,100,dynamic,10000.0,100.0,0.5,auto,0.5,1000,5,77.17,960,75.38,13.582,,124.3,True
+paper_lambda_cifar10,cifar10,100,dynamic,10000.0,100.0,0.75,auto,0.5,1000,5,77.4,960,75.32,13.643,,123.9,True
+paper_lambda_cifar10,cifar10,100,dynamic,10000.0,100.0,1.0,auto,0.5,1000,5,77.03,960,75.41,13.699,,123.6,True
